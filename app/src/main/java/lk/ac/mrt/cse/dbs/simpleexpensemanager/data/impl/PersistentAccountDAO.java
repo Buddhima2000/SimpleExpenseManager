@@ -1,20 +1,8 @@
-/*
- * Copyright 2015 Department of Computer Science and Engineering, University of Moratuwa.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *                  http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
 package lk.ac.mrt.cse.dbs.simpleexpensemanager.data.impl;
+
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,15 +14,14 @@ import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.exception.InvalidAccountExcep
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.Account;
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.ExpenseType;
 
-/**
- * This is an In-Memory implementation of the AccountDAO interface. This is not a persistent storage. A HashMap is
- * used to store the account details temporarily in the memory.
- */
-public class InMemoryAccountDAO implements AccountDAO {
+public class PersistentAccountDAO implements AccountDAO {
     private final Map<String, Account> accounts;
+    private final SQLiteDatabase sqlDB;
 
-    public InMemoryAccountDAO() {
+    public PersistentAccountDAO(SQLiteDatabase sqLiteDatabase) {
         this.accounts = new HashMap<>();
+        this.sqlDB = sqLiteDatabase;
+        loadAccountData();
     }
 
     @Override
@@ -59,15 +46,27 @@ public class InMemoryAccountDAO implements AccountDAO {
     @Override
     public void addAccount(Account account) {
         accounts.put(account.getAccountNo(), account);
+
+
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("accountNo",account.getAccountNo());
+        contentValues.put("bankName",account.getBankName());
+        contentValues.put("accountHolderName",account.getAccountHolderName());
+        contentValues.put("balance",account.getBalance());
+        sqlDB.insert("user_account",null,contentValues);
     }
 
     @Override
     public void removeAccount(String accountNo) throws InvalidAccountException {
-        if (!accounts.containsKey(accountNo)) {
+        Cursor c1 = sqlDB.rawQuery("SELECT * FROM user_account WHERE accountNo = ?",new String[]{accountNo});
+        if(!(c1.getCount()>=1)) {
             String msg = "Account " + accountNo + " is invalid.";
             throw new InvalidAccountException(msg);
+        }else {
+            sqlDB.delete("user_account", "accountNo=?", new String[]{accountNo});
+            accounts.remove(accountNo);
         }
-        accounts.remove(accountNo);
+        c1.close();
     }
 
     @Override
@@ -80,6 +79,9 @@ public class InMemoryAccountDAO implements AccountDAO {
 
         switch (expenseType) {
             case EXPENSE:
+                if(amount>account.getBalance()){
+                    throw new InvalidAccountException("Insufficient balance!");
+                }
                 account.setBalance(account.getBalance() - amount);
                 break;
             case INCOME:
@@ -87,5 +89,24 @@ public class InMemoryAccountDAO implements AccountDAO {
                 break;
         }
         accounts.put(accountNo, account);
+
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("balance",account.getBalance());
+        sqlDB.update("user_account",contentValues,"accountNo=?",new String[]{accountNo});
+    }
+
+    public void loadAccountData(){
+
+        Cursor c2 = sqlDB.rawQuery("SELECT * FROM user_account",null);
+        while (c2.moveToNext()){
+            String accNo = c2.getString(0);
+            String bank = c2.getString(1);
+            String accountHolder = c2.getString(2);
+            double balance = c2.getDouble(3);
+            Account account = new Account(accNo,bank,accountHolder,balance);
+
+            accounts.put(account.getAccountNo(), account);
+        }
+        c2.close();
     }
 }
