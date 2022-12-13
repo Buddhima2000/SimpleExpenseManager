@@ -47,7 +47,7 @@ public class PersistentAccountDAO implements AccountDAO {
     public void addAccount(Account account) {
         accounts.put(account.getAccountNo(), account);
 
-
+    //store data in the  the database
         ContentValues contentValues = new ContentValues();
         contentValues.put("accountNo",account.getAccountNo());
         contentValues.put("bankName",account.getBankName());
@@ -55,6 +55,7 @@ public class PersistentAccountDAO implements AccountDAO {
         contentValues.put("balance",account.getBalance());
         sqlDB.insert("user_account",null,contentValues);
     }
+
 
     @Override
     public void removeAccount(String accountNo) throws InvalidAccountException {
@@ -94,6 +95,8 @@ public class PersistentAccountDAO implements AccountDAO {
         contentValues.put("balance",account.getBalance());
         sqlDB.update("user_account",contentValues,"accountNo=?",new String[]{accountNo});
     }
+
+
 
     public void loadAccountData(){
 

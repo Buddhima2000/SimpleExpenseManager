@@ -19,6 +19,7 @@ public class PersistentExpenseManager extends ExpenseManager {
 
     @Override
     public void setup() {
+        //creating database object
         DBHelper dbHelper = new DBHelper(context);
         SQLiteDatabase sqlDB = dbHelper.getWritableDatabase();
 

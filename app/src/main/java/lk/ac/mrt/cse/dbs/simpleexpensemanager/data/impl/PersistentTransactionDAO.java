@@ -23,6 +23,7 @@ public class PersistentTransactionDAO implements TransactionDAO {
         this.transactions = new LinkedList<>();
         this.sqlDB = sqLiteDatabase;
         this.simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        //load details of the accounts to the hashmap
         loadTransactions();
     }
 
@@ -31,7 +32,7 @@ public class PersistentTransactionDAO implements TransactionDAO {
         Transaction transaction = new Transaction(date, accountNo, expenseType, amount);
         transactions.add(transaction);
 
-        // adding the new transaction to the database.
+        //adding to database
         ContentValues contentValues = new ContentValues();
         contentValues.put("date",simpleDateFormat.format(date));
         contentValues.put("accountNo",accountNo);
